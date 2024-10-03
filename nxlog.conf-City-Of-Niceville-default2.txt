@@ -1,0 +1,128 @@
+define ROOT     C:\Program Files\nxlog
+define WINEVTLOG_OUTPUT_DESTINATION_ADDRESS 10.40.40.28
+define WINEVTLOG_OUTPUT_DESTINATION_PORT 11517
+define WINPOWERSHELL_OUTPUT_DESTINATION_PORT 11614
+
+define CERTDIR  %ROOT%\cert
+define CONFDIR  %ROOT%\conf\nxlog.d
+define LOGDIR   %ROOT%\data
+
+include %CONFDIR%\\*.conf
+define LOGFILE  %LOGDIR%\nxlog.log
+LogFile %LOGFILE%
+
+Moduledir %ROOT%\modules
+CacheDir  %ROOT%\data
+Pidfile   %ROOT%\data\nxlog.pid
+SpoolDir  %ROOT%\data
+
+<Extension _json>
+      Module      xm_json
+	  DateFormat            YYYY-MM-DDThh:mm:ss.sUTC
+</Extension>
+
+<Extension kvp>
+	Module	xm_kvp
+	KVDelimiter	=
+	KVPDelimiter	'
+	EscapeControl	FALSE
+</Extension>
+ 
+<Input windows>
+	Module	im_msvistalog
+	SavePos	TRUE
+	ReadFromLast	TRUE
+ <QueryXML>
+   <QueryList>
+      <Query Id="0">
+         <Select Path="Application">*</Select>
+         <Select Path="System">*</Select>
+         <Select Path="Security">*</Select>
+      </Query>
+  </QueryList>
+ </QueryXML>
+    Exec if ($EventID == 5156) drop();
+	Exec	$Message = to_json(); 
+	
+</Input>
+
+<Input powershell-module-log>
+	Module	im_msvistalog
+	SavePos	TRUE
+	ReadFromLast	TRUE
+	 	<QueryXML>
+        <QueryList>
+            <Query Id="0" Path="Microsoft-Windows-PowerShell/Operational">
+                <Select Path="Microsoft-Windows-PowerShell/Operational">*[System[EventID=4103]]</Select>
+            </Query>
+        </QueryList>
+    </QueryXML>
+    <Exec>
+        if defined($ContextInfo)
+        {
+            $ContextInfo = replace($ContextInfo, "\r\n", ",");
+            $ContextInfo = replace($ContextInfo, "\n", ",");
+            $ContextInfo = replace($ContextInfo, "        ", "");
+            kvp->parse_kvp($ContextInfo, "ContextInfo_");
+            delete($ContextInfo);
+            delete($Message);
+        }
+        json->to_json();
+    </Exec>        
+</Input>
+
+<Route r1>
+      Path windows => out_chronicle_windevents
+</Route>
+
+<Route r2>
+	  Path powershell-module-log => chronicle_powershell
+</Route>
+
+<Output out_chronicle_windevents>
+      Module      om_tcp
+      Host        %WINEVTLOG_OUTPUT_DESTINATION_ADDRESS%
+      Port        %WINEVTLOG_OUTPUT_DESTINATION_PORT%
+      Exec        $EventTime = integer($EventTime) / 1000;
+      Exec        $EventReceivedTime = integer($EventReceivedTime) / 1000;
+      Exec        to_json();
+</Output>
+
+<Output out_chronicle_powershell>
+      Module      om_tcp
+      Host        %WINEVTLOG_OUTPUT_DESTINATION_ADDRESS%
+      Port        %WINPOWERSHELL_OUTPUT_DESTINATION_PORT%
+      Exec        $EventTime = integer($EventTime) / 1000;
+      Exec        $EventReceivedTime = integer($EventReceivedTime) / 1000;
+      Exec        to_json();
+</Output>
+
+
+
+<Extension _charconv>
+    Module      xm_charconv
+    AutodetectCharsets iso8859-2, utf-8, utf-16, utf-32
+</Extension>
+
+<Extension _exec>
+    Module      xm_exec
+</Extension>
+
+<Extension _fileop>
+    Module      xm_fileop
+
+    # Check the size of our log file hourly, rotate if larger than 5MB
+    <Schedule>
+        Every   1 hour
+        Exec    if (file_exists('%LOGFILE%') and \
+                   (file_size('%LOGFILE%') >= 5M)) \
+                    file_cycle('%LOGFILE%', 8);
+    </Schedule>
+
+    # Rotate our log file every week on Sunday at midnight
+    <Schedule>
+        When    @weekly
+        Exec    if file_exists('%LOGFILE%') file_cycle('%LOGFILE%', 8);
+    </Schedule>
+</Extension>
+
