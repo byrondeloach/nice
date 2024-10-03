@@ -77,7 +77,7 @@ SpoolDir  %ROOT%\data
       Exec        to_json();
 </Output>
 
-<Output out_chronicle_powershell>
+<Output winPowerShell_eventlog>
       Module      om_tcp
       Host        %WINEVTLOG_OUTPUT_DESTINATION_ADDRESS%
       Port        %WINPOWERSHELL_OUTPUT_DESTINATION_PORT%
