@@ -46,29 +46,18 @@ SpoolDir  %ROOT%\data
 	
 </Input>
 
-<Input powershell-module-log>
-	Module	im_msvistalog
-	SavePos	TRUE
-	ReadFromLast	TRUE
-	 	<QueryXML>
-        <QueryList>
-            <Query Id="0" Path="Microsoft-Windows-PowerShell/Operational">
-                <Select Path="Microsoft-Windows-PowerShell/Operational">*[System[EventID=4103]]</Select>
-            </Query>
-        </QueryList>
-    </QueryXML>
-    <Exec>
-        if defined($ContextInfo)
-        {
-            $ContextInfo = replace($ContextInfo, "\r\n", ",");
-            $ContextInfo = replace($ContextInfo, "\n", ",");
-            $ContextInfo = replace($ContextInfo, "        ", "");
-            kvp->parse_kvp($ContextInfo, "ContextInfo_");
-            delete($ContextInfo);
-            delete($Message);
-        }
-        json->to_json();
-    </Exec>        
+<Input winPowerShell_eventlog>
+      Module  im_msvistalog
+      <QueryXML>
+          <QueryList>
+              <Query Id="0">
+                  <Select Path="Microsoft-Windows-PowerShell/Operational">*</Select>
+                  <Select Path="Windows PowerShell">*</Select>
+              </Query>
+          </QueryList>
+      </QueryXML>
+      ReadFromLast  TRUE
+      SavePos  TRUE
 </Input>
 
 <Route r1>
