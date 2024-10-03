@@ -64,7 +64,7 @@ SpoolDir  %ROOT%\data
 </Route>
 
 <Route r2>
-	  Path powershell-module-log => winPowerShell_eventlog
+	  Path winPowerShell_eventlog => out_winPowerShell_eventlog
 </Route>
 
 <Output out_chronicle_windevents>
@@ -76,7 +76,7 @@ SpoolDir  %ROOT%\data
       Exec        to_json();
 </Output>
 
-<Output winPowerShell_eventlog>
+<Output out_winPowerShell_eventlog>
       Module      om_tcp
       Host        %WINEVTLOG_OUTPUT_DESTINATION_ADDRESS%
       Port        %WINPOWERSHELL_OUTPUT_DESTINATION_PORT%
