@@ -76,7 +76,7 @@ SpoolDir  %ROOT%\data
 </Route>
 
 <Route r2>
-	  Path powershell-module-log => chronicle_powershell
+	  Path powershell-module-log => out_chronicle_powershell
 </Route>
 
 <Output out_chronicle_windevents>
