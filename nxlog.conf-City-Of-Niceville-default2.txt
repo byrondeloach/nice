@@ -18,7 +18,6 @@ SpoolDir  %ROOT%\data
 
 <Extension _json>
       Module      xm_json
-	  DateFormat            YYYY-MM-DDThh:mm:ss.sUTC
 </Extension>
 
 <Extension kvp>
